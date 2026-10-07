@@ -3,8 +3,8 @@
 import { useRef, useState } from "react";
 import Modal from "./Modal";
 import { fileToDataUrl } from "@/lib/images";
-import { useItemPhoto } from "./ItemPhoto";
-import { addVipOption, useStore } from "@/lib/store";
+import { photoUrl } from "./ItemPhoto";
+import { useStore } from "@/lib/store";
 import { generateItemId } from "@/lib/id";
 import type { Item } from "@/lib/types";
 
@@ -18,8 +18,9 @@ export default function ItemFormModal({
   item?: Item;
   onClose: () => void;
 }) {
-  const { addItem, updateItem, setItemImage, issuedOut, items, vipOptions } = useStore();
-  const existingPhoto = useItemPhoto(item?.id ?? "", Boolean(item?.hasImage), item?.updatedAt ?? "");
+  const { addItem, updateItem, setItemImage, issuedOut, items, vipOptions, addVipOption } =
+    useStore();
+  const existingPhoto = item?.hasImage ? photoUrl(item.id, item.updatedAt) : null;
 
   const [name, setName] = useState(item?.name ?? "");
   const [totalQuantity, setTotalQuantity] = useState(String(item?.totalQuantity ?? 1));
@@ -75,10 +76,17 @@ export default function ItemFormModal({
 
     setBusy(true);
     try {
-      const chosenVip = addingVip ? addVipOption(newVip) : vip;
+      const chosenVip = addingVip ? await addVipOption(newVip) : vip;
       const draft = { name: trimmed, totalQuantity: qty, vip: chosenVip, location, notes };
-      const target = item ? (updateItem(item.id, draft), item) : addItem(draft);
-      if (photoTouched) await setItemImage(target.id, photo);
+      let targetId: string;
+      if (item) {
+        await updateItem(item.id, draft);
+        targetId = item.id;
+      } else {
+        targetId = (await addItem(draft)).id;
+      }
+      // A newly picked photo is a data URL; an untouched one is just its URL.
+      if (photoTouched) await setItemImage(targetId, photo);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save this item.");

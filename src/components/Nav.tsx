@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logoutAction } from "@/server/actions";
 
-const LINKS = [
-  { href: "/", label: "Inventory" },
-  { href: "/issued", label: "Issued Log" },
-];
-
-export default function Nav() {
+export default function Nav({ faculty }: { faculty: boolean }) {
   const pathname = usePathname();
+
+  const links = faculty
+    ? [
+        { href: "/", label: "Inventory" },
+        { href: "/issued", label: "Issued Log" },
+      ]
+    : [{ href: "/", label: "Inventory" }];
+
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
@@ -17,10 +21,11 @@ export default function Nav() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-black text-white">
             IV
           </span>
-          <span className="text-base font-extrabold tracking-tight">Inventory</span>
+          <span className="text-base font-extrabold tracking-tight">NYU VIP Inventory</span>
         </Link>
+
         <nav className="flex items-center gap-1">
-          {LINKS.map((link) => {
+          {links.map((link) => {
             const active = pathname === link.href;
             return (
               <Link
@@ -36,6 +41,18 @@ export default function Nav() {
               </Link>
             );
           })}
+
+          {faculty ? (
+            <form action={logoutAction}>
+              <button type="submit" className="btn btn-ghost btn-sm ml-1">
+                Sign out
+              </button>
+            </form>
+          ) : (
+            <Link href="/login" className="btn btn-ghost btn-sm ml-1">
+              Faculty sign in
+            </Link>
+          )}
         </nav>
       </div>
     </header>

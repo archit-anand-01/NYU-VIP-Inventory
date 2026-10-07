@@ -1,31 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getImage } from "@/lib/images";
-
-// Photos come from IndexedDB, so cache them per render key to avoid a read on
-// every table repaint. `version` (the item's updatedAt) busts the cache.
-const cache = new Map<string, string | null>();
-
-export function useItemPhoto(id: string, hasImage: boolean, version: string) {
-  const key = `${id}|${version}`;
-  const [fetched, setFetched] = useState<{ key: string; src: string | null } | null>(null);
-
-  useEffect(() => {
-    if (!hasImage || cache.has(key)) return;
-    let live = true;
-    getImage(id).then((data) => {
-      cache.set(key, data ?? null);
-      if (live) setFetched({ key, src: data ?? null });
-    });
-    return () => {
-      live = false;
-    };
-  }, [id, hasImage, key]);
-
-  if (!hasImage) return null;
-  if (cache.has(key)) return cache.get(key) ?? null;
-  return fetched?.key === key ? fetched.src : null;
+/** Photos are served by the app, so the browser caches them like any image. */
+export function photoUrl(id: string, version: string): string {
+  return `/api/photo/${encodeURIComponent(id)}?v=${encodeURIComponent(version)}`;
 }
 
 export default function ItemPhoto({
@@ -43,9 +20,7 @@ export default function ItemPhoto({
   onOpen?: (src: string) => void;
   className?: string;
 }) {
-  const src = useItemPhoto(id, hasImage, version);
-
-  if (!src) {
+  if (!hasImage) {
     return (
       <div
         className={`${className} flex shrink-0 items-center justify-center rounded-lg border border-line bg-background text-[0.65rem] font-bold text-muted`}
@@ -56,6 +31,7 @@ export default function ItemPhoto({
     );
   }
 
+  const src = photoUrl(id, version);
   const frame = `${className} shrink-0 overflow-hidden rounded-lg border border-line bg-background`;
   /* eslint-disable-next-line @next/next/no-img-element */
   const picture = <img src={src} alt={name} className="h-full w-full object-cover" />;
